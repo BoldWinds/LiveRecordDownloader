@@ -28,7 +28,7 @@ headers = {
 # X-bogus算法
 def get_xbogus(url) -> str:
     query = urllib.parse.urlparse(url).query
-    xbogus = execjs.compile(open('./x-bogus.js').read()).call('sign', query, headers["User-Agent"])
+    xbogus = execjs.compile(open('static/x-bogus.js').read()).call('sign', query, headers["User-Agent"])
     # print(xbogus)
     return xbogus
 
