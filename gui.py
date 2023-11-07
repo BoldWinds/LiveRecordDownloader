@@ -14,7 +14,7 @@ class LiveRecorderGUI:
         self.tree = None
         self.quality_combobox = None
         self.root = root
-        self.root.title("Live Stream Recorder")
+        self.root.title("抖音直播下载")
         self.process = None  # 用于存储子进程的引用
         self.config = './config/config.json'  # Define this before setup_ui()
         self.url_config = './config/url_config.json'  # Define this before setup_ui()
