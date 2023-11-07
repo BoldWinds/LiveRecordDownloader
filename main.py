@@ -64,7 +64,8 @@ global_proxy = False
 recording_time_list = {}
 user_agent = "Mozilla/5.0 (Linux; Android 11; SAMSUNG SM-G973U) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/14.2 Chrome/87.0.4280.141 Mobile Safari/537.36"
 config_file = './config/config.ini'
-url_config_file = './config/URL_config.ini'
+config_json = './config/config.json'
+url_config_json = './config/url_config.json'
 backup_dir = './backup_config'
 encoding = 'utf-8-sig'
 rstr = r"[\/\\\:\*\?\"\<\>\|&u]"
@@ -137,18 +138,6 @@ def display_info():
         except Exception as e:
             print(f"错误信息:{e}\r\n发生错误的行数: {e.__traceback__.tb_lineno}")
             logger.warning(f"错误信息: {e} 发生错误的行数: {e.__traceback__.tb_lineno}")
-
-
-def update_file(file, old_str, new_str):
-    # TODO: 更新文件操作
-    file_data = ""
-    with open(file, "r", encoding="utf-8-sig") as f:
-        for text_line in f:
-            if old_str in text_line:
-                text_line = text_line.replace(old_str, new_str)
-            file_data += text_line
-    with open(file, "w", encoding="utf-8-sig") as f:
-        f.write(file_data)
 
 
 def converts_mp4(address):
@@ -532,7 +521,7 @@ def start_record(url_tuple, count_variable=-1):
     global live_list
     global not_record_list
     global recording_time_list
-
+    print("start_record!")
     while True:
         try:
             record_finished = False
@@ -565,34 +554,28 @@ def start_record(url_tuple, count_variable=-1):
                         with semaphore:
                             json_data = get_douyin_stream_data(new_record_url, dy_cookie)
                             port_info = get_douyin_stream_url(json_data)
-
                     elif record_url.find("https://www.tiktok.com/") > -1:
                         with semaphore:
                             if use_proxy:
                                 if global_proxy or proxy_addr != '':
                                     json_data = get_tiktok_stream_data(record_url, proxy_addr, tiktok_cookie)
                                     port_info = get_tiktok_stream_url(json_data)
-
                     elif record_url.find("https://live.kuaishou.com/") > -1:
                         with semaphore:
                             json_data = get_kuaishou_stream_data2(record_url, ks_cookie)
                             port_info = get_kuaishou_stream_url(json_data)
-
                     elif record_url.find("https://www.huya.com/") > -1:
                         with semaphore:
                             json_data = get_huya_stream_data(record_url, hy_cookie)
                             port_info = get_huya_stream_url(json_data)
-
                     elif record_url.find("https://www.douyu.com/") > -1:
                         with semaphore:
                             json_data = get_douyu_info_data(record_url)
                             port_info = get_douyu_stream_url(json_data, douyu_cookie)
-
                     elif record_url.find("https://www.yy.com/") > -1:
                         with semaphore:
                             json_data = get_yy_stream_data(record_url, yy_cookie)
                             port_info = get_yy_stream_url(json_data)
-
                     elif record_url.find("https://live.bilibili.com/") > -1:
                         with semaphore:
                             json_data = get_bilibili_stream_data(record_url, bili_cookie)
@@ -621,8 +604,11 @@ def start_record(url_tuple, count_variable=-1):
 
                         if port_info['is_live'] is False:
                             print(f"{record_name} 等待直播... ")
+                            updateJson(record_url, {'description': anchor_name,'isLiving': "等待开播",'isRecording': False})
                         else:
                             content = f"{record_name} 正在直播中..."
+                            updateJson(record_url,
+                                       {'description': anchor_name, 'isLiving': "正在直播", 'isRecording': True})
                             print(content)
                             # 推送通知
                             if live_status_push != '':
@@ -632,6 +618,7 @@ def start_record(url_tuple, count_variable=-1):
                                     dingtalk(dingtalk_api_url, content, dingtalk_phone_num)
 
                             real_url = port_info['record_url']
+                            print("real url is: "+real_url)
                             full_path = f'{default_path}/{anchor_name}'
                             if real_url != "":
                                 live_list.append(anchor_name)
@@ -758,6 +745,7 @@ def start_record(url_tuple, count_variable=-1):
                                 elif video_save_type == "MP4":
 
                                     filename = anchor_name + '_' + now + ".mp4"
+                                    updateJson(record_url, {'description': anchor_name, 'startTime': now})
                                     print(f'{rec_info}/{filename}')
                                     file = full_path + '/' + filename
 
@@ -985,44 +973,28 @@ def check_md5(file_path):
     return file_md5
 
 
-def backup_file(file_path, backup_dir):
-    """
-    备份配置文件到备份目录
-    """
+def updateJson(url, updates):
+    # 打开JSON文件并修改url对应的值
     try:
-        if not os.path.exists(backup_dir):
-            os.makedirs(backup_dir)
-        # 拼接备份文件名，年-月-日-时-分-秒
-        timestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
-        backup_file_name = os.path.basename(file_path) + '_' + timestamp
-        # 拷贝文件到备份目录
-        backup_file_path = os.path.join(backup_dir, backup_file_name)
-        shutil.copy2(file_path, backup_file_path)
-        print(f'\r已备份配置文件 {file_path} 到 {backup_file_path}')
-    except Exception as e:
-        print(f'\r备份配置文件 {file_path} 失败：{str(e)}')
-
-
-def backup_file_start():
-    config_md5 = ''
-    url_config_md5 = ''
-
-    while True:
-        try:
-            if os.path.exists(config_file):
-                new_config_md5 = check_md5(config_file)
-                if new_config_md5 != config_md5:
-                    backup_file(config_file, backup_dir)
-                    config_md5 = new_config_md5
-
-            if os.path.exists(url_config_file):
-                new_url_config_md5 = check_md5(url_config_file)
-                if new_url_config_md5 != url_config_md5:
-                    backup_file(url_config_file, backup_dir)
-                    url_config_md5 = new_url_config_md5
-            time.sleep(60)  # 每1分钟检测一次文件是否有修改
-        except Exception as e:
-            print(f'执行脚本异常：{str(e)}')
+        # 使用r+模式打开文件以便读取和写入
+        with open(url_config_json, "r+", encoding=encoding) as file:
+            # 读取JSON内容
+            json_list = json.load(file)
+            # 查找对应的URL并更新
+            for obj in json_list:
+                if obj['url'] == url:
+                    obj.update(updates)
+                    break
+            # 移动文件指针到文件的开头
+            file.seek(0)
+            # 写入更新后的JSON数据
+            json.dump(json_list, file, ensure_ascii=False, indent=4)
+            # 截断文件以移除旧的内容
+            file.truncate()
+    except IOError as e:
+        print(f"An IOError occurred: {e.strerror}")
+    except json.JSONDecodeError:
+        print("File is not a valid JSON.")
 
 
 # --------------------------检测是否存在ffmpeg-------------------------------------
@@ -1049,8 +1021,6 @@ if not os.path.exists('./config'):
     os.makedirs('./config')
 
 # 备份配置
-t3 = threading.Thread(target=backup_file_start, args=(), daemon=True)
-t3.start()
 
 # 录制tiktok时，如果开启了电脑全局/规则代理，可以不用再在配置文件中填写代理地址
 # 但强烈建议还是配置一下代理地址，否则非常不稳定
@@ -1093,20 +1063,18 @@ while True:
         with open(config_file, 'w', encoding=encoding) as f:
             pass
 
-    if os.path.isfile(url_config_file):
-        with open(url_config_file, 'r', encoding=encoding) as f:
-            inicontent = f.read()
+    if os.path.isfile(url_config_json):
+        with open(url_config_json, 'r', encoding=encoding) as file:
+            url_json_data = json.load(file)
+
     else:
-        inicontent = ""
+        url_json_data = ""
 
-    if len(inicontent) == 0:
-        inurl = input('请输入要录制的主播直播间网址（尽量使用PC网页端的直播间地址）:\n')
-        with open(url_config_file, 'a+', encoding=encoding) as f:
-            f.write(inurl)
-
-    video_save_path = read_config_value(config, '录制设置', '直播保存路径（不填则默认）', "")
+    with open(config_json, 'r', encoding=encoding) as file:
+        json_data = json.load(file)
+        video_save_path = json_data.get('video_save_path', '直播录屏')
+        video_quality = json_data.get('video_quality', '原画')
     video_save_type = read_config_value(config, '录制设置', '视频保存格式TS|MKV|FLV|MP4|TS音频|MKV音频', "mp4")
-    video_quality = read_config_value(config, '录制设置', '原画|超清|高清|标清', "原画")
     use_proxy = read_config_value(config, '录制设置', '是否使用代理ip（是/否）', "是")
     proxy_addr = read_config_value(config, '录制设置', '代理地址', "")
     max_request = int(read_config_value(config, '录制设置', '同一时间访问网络的线程数', 3))
@@ -1178,17 +1146,11 @@ while True:
 
     # 读取url_config.ini文件
     try:
-        with open(url_config_file, "r", encoding=encoding) as file:
-            for line in file:
-                line = line.strip()
-                if line.startswith("#") or len(line) < 20:
-                    continue
-
-                if re.search('[,，]', line):
-                    split_line = re.split('[,，]', line)
-                else:
-                    split_line = [line, '']
-                url = split_line[0]
+        with open(url_config_json, "r", encoding=encoding) as file:
+            url_json_data = json.load(file)
+            for item in url_json_data:
+                url = item['url']
+                description = item['description']
 
                 if ('http://' not in url) and ('https://' not in url):
                     url = 'https://' + url
@@ -1205,16 +1167,15 @@ while True:
                     'live.bilibili.com'
                 ]
                 if url_host in host_list:
-                    new_line = (url, split_line[1])
+                    new_line = (url, description)
                     url_tuples_list.append(new_line)
                 else:
                     print(f"{url} 未知链接.此条跳过")
-
         while len(name_list):
             a = name_list.pop()
             replacewords = a.split('|')
             if replacewords[0] != replacewords[1]:
-                update_file(url_config_file, replacewords[0], replacewords[1])
+                updateJson(replacewords[0], {'url': replacewords[1].split(',')[0], 'description': replacewords[1].split(',')[1]})
 
         if len(url_tuples_list) > 0:
             textNoRepeatUrl = list(set(url_tuples_list))

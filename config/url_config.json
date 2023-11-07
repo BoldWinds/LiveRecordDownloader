@@ -1,0 +1,30 @@
+﻿[
+    {
+        "url": "https://live.douyin.com/114028976806",
+        "description": "老表热游",
+        "startTime": "2023-11-07-15-55-06",
+        "isRecording": true,
+        "isLiving": "正在直播"
+    },
+    {
+        "url": "https://live.douyin.com/31437334966",
+        "description": "JJ斗地主",
+        "startTime": "2023-11-07-15-55-06",
+        "isRecording": true,
+        "isLiving": "正在直播"
+    },
+    {
+        "url": "https://live.douyin.com/878471479841",
+        "description": "麻将群英会（招游戏主播）",
+        "startTime": "2023-1106-15-20-00",
+        "isRecording": false,
+        "isLiving": "等待开播"
+    },
+    {
+        "url": "https://live.douyin.com/955218258991",
+        "description": "疯狂大小杨哥(三只羊小卖部)",
+        "startTime": "2023-11-07-15-55-06",
+        "isLiving": "正在直播",
+        "isRecording": true
+    }
+]
