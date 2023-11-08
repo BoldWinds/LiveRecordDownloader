@@ -1,10 +1,7 @@
 import tkinter as tk
 from tkinter import simpledialog, messagebox, filedialog, ttk
 from subprocess import Popen
-import json
-import threading
-import os
-import sys
+from main import *
 
 
 class LiveRecorderGUI:
@@ -99,7 +96,7 @@ class LiveRecorderGUI:
 
     def start_recording(self):
         # 启动录制进程
-        self.process = Popen(['python', self.resource_path('main.py')])
+        self.process = Popen(['python', self.resource_path('main.py')],shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         messagebox.showinfo("直播", "开始直播录制。")
 
     def stop_recording(self):
