@@ -1,8 +1,10 @@
 import tkinter as tk
 from tkinter import simpledialog, messagebox, filedialog, ttk
-import subprocess
+from subprocess import Popen
 import json
 import threading
+import os
+import sys
 
 
 class LiveRecorderGUI:
@@ -97,7 +99,7 @@ class LiveRecorderGUI:
 
     def start_recording(self):
         # 启动录制进程
-        self.process = subprocess.Popen(['python', 'main.py'])
+        self.process = Popen(['python', self.resource_path('main.py')])
         messagebox.showinfo("直播", "开始直播录制。")
 
     def stop_recording(self):
@@ -162,15 +164,16 @@ class LiveRecorderGUI:
         """在 GUI 线程中显示错误消息"""
         messagebox.showerror("错误", message)
 
-    '''def update_config(self, updates):
-        # 打开文件并加载 JSON 数据
-        with open(self.config, 'r', encoding='utf-8-sig') as file:
-            config_data = json.load(file)
-        # 更新 JSON 数据
-        config_data.update(updates)
-        # 将更新后的 JSON 数据写回文件
-        with open(self.config, 'w', encoding='utf-8-sig') as file:
-            json.dump(config_data, file, ensure_ascii=False, indent=4)'''
+    def resource_path(self, relative_path):
+        """ 获取资源的绝对路径。用于PyInstaller的--onefile。 """
+        try:
+            # PyInstaller创建的临时文件夹
+            base_path = sys._MEIPASS
+        except Exception:
+            # 如果不是使用PyInstaller打包，则正常使用相对路径
+            base_path = os.path.abspath(".")
+
+        return os.path.join(base_path, relative_path)
 
 
 if __name__ == "__main__":
