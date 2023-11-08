@@ -1,0 +1,46 @@
+# -*- mode: python ; coding: utf-8 -*-
+
+block_cipher = None
+
+a = Analysis(['main.py'],
+             pathex=['.'],  # Add the path to the source code directory here if it's not the current directory
+             binaries=[],
+             datas=[
+                 ('config/*.json', 'config'),  # Include config directory
+                 ('log/*', 'log'),  # Include log directory
+                 ('api/*.php', 'api'),  # Include API directory with PHP scripts
+                 ('static/*', 'static'),  # Include static directory
+             ],
+             hiddenimports=['config', 'get_url', 'msg_push', 'spider', 'web_rid', 'start_record'],  # Include all your Python modules
+             hookspath=[],
+             runtime_hooks=[],
+             excludes=[],
+             win_no_prefer_redirects=False,
+             win_private_assemblies=False,
+             cipher=block_cipher,
+             noarchive=False
+             )
+
+pyz = PYZ(a.pure, a.zipped_data,
+             cipher=block_cipher)
+
+exe = EXE(pyz,
+          a.scripts,
+          a.binaries,
+          a.zipfiles,
+          a.datas,
+          [],
+          name='LiveRecordDownloader',
+          debug=False,
+          bootloader_ignore_signals=False,
+          strip=False,
+          upx=True,
+          upx_exclude=[],
+          runtime_tmpdir=None,
+          console=True,  # Set to False if you do not want a console window
+          icon=None,  # Add path to the icon file here if you have one
+          target_arch=None,
+          codesign_identity=None,
+          entitlements_file=None )
+
+# If you have a GUI and don't want a console window, replace 'console=True' with 'windowed=True' in the EXE() function call.
