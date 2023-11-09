@@ -16,8 +16,8 @@
             "url": "https://live.douyin.com/31437334966",
             "description": "JJ斗地主",
             "start_time": "2023-11-08-10-17-59",
-            "is_recording": true,
-            "is_living": "正在直播"
+            "is_recording": false,
+            "is_living": "等待开播"
         }
     ]
 }

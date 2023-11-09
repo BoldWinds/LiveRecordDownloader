@@ -79,12 +79,12 @@ def start_record(config, url_tuple, name_list, not_record_list, warning_count, l
 
                         if port_info['is_live'] is False:
                             print(f"{record_name} 等待直播... ")
-                            config.update_live_room(record_url, {'description': anchor_name, 'isLiving': "等待开播",
-                                                                 'isRecording': False})
+                            config.update_live_room(record_url, {'description': anchor_name, 'is_living': "等待开播",
+                                                                 'is_recording': False})
                         else:
                             content = f"{record_name} 正在直播中..."
-                            config.update_live_room(record_url, {'description': anchor_name, 'isLiving': "正在直播",
-                                                                 'isRecording': True})
+                            config.update_live_room(record_url, {'description': anchor_name, 'is_living': "正在直播",
+                                                                 'is_recording': True})
                             print(content)
 
                             real_url = port_info['record_url']
@@ -145,7 +145,7 @@ def start_record(config, url_tuple, name_list, not_record_list, warning_count, l
 
                                 # mp4处理
                                 filename = anchor_name + '_' + now + ".mp4"
-                                config.update_live_room(record_url, {'description': anchor_name, 'startTime': now})
+                                config.update_live_room(record_url, {'description': anchor_name, 'start_time': now})
                                 print(f'{rec_info}/{filename}')
                                 file = full_path + '/' + filename
 

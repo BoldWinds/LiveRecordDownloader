@@ -98,13 +98,15 @@ class LiveRecorderGUI:
 
     def update_treeview(self):
         """定期检查 JSON 文件并更新 Treeview."""
+        print("update treeview")
+        print(self.config)
         self.load_urls()  # 加载最新的 URLs
         # 设置定时器，每隔一定时间重复调用该方法
         self.root.after(self.update_interval, self.update_treeview)
 
     def start_recording(self):
-        self.record_thread.start()
         self.record_thread.daemon = True
+        self.record_thread.start()
         messagebox.showinfo("直播", "开始直播录制。")
 
     def stop_recording(self):
@@ -115,6 +117,7 @@ class LiveRecorderGUI:
             messagebox.showinfo("直播", "已停止直播录制。")
 
     def load_urls(self):
+        self.config.load()
         for i in self.tree.get_children():
             self.tree.delete(i)
         for room in self.config.live_rooms:

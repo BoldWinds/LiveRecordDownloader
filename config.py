@@ -70,7 +70,8 @@ class Config:
                     room.is_recording = updates['is_recording']
                 if 'is_living' in updates:
                     room.is_living = updates['is_living']
-                print(f"Room updated: {room.url}")
+                print(f"Room updated: {room.url}，{updates}")
+                self.save_config()
                 return
         print(f"Room not found: {url_to_find}")
 
@@ -86,6 +87,17 @@ class Config:
         }
         with open(self.config_path, 'w', encoding='utf-8') as file:
             json.dump(config, file, ensure_ascii=False, indent=4)
+
+    def load(self):
+        with open(self.config_path, 'r', encoding='utf-8-sig') as f:
+            config_str = f.read()
+            config = json.loads(config_str)
+        self.username = config['username']
+        self.password = config['password']
+        self.video_save_path = config['video_save_path']
+        self.video_quality = config['video_quality']
+        self.dy_cookie = config['dy_cookie']
+        self.live_rooms = [LiveRoomConfig(**url) for url in config['live_rooms']]
 
     # Method to output the class data in JSON format
     def __repr__(self):
