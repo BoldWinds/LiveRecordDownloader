@@ -115,7 +115,6 @@ class LiveRecorderGUI:
             messagebox.showinfo("直播", "已停止直播录制。")
 
     def load_urls(self):
-        # 从配置文件加载直播链接到树形视图
         for i in self.tree.get_children():
             self.tree.delete(i)
         for room in self.config.live_rooms:
