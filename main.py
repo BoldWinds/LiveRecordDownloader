@@ -45,7 +45,7 @@ def change_max_connect(warning_count=0):
             print("同一时间访问网络的线程数动态改为", max_request)
 
 
-def main(config):
+def main(config, stop_event):
     # --------------------------检测是否存在ffmpeg-------------------------------------
     ffmpeg_file_check = subprocess.getoutput(["ffmpeg"])
     if ffmpeg_file_check.find("run") > -1:
@@ -94,11 +94,6 @@ def main(config):
 
         config = Config(config_path)
 
-        # 这里是控制TS分段大小
-        '''if Splitsize < 5:
-            Splitsize = 5  # 分段大小最低不能小于5m
-        Splitsizes = Splitsize * 1024 * 1024  # 分割视频大小,转换为字节'''
-
         # 读取直播间url信息
         try:
             rooms = config.live_rooms
@@ -143,7 +138,7 @@ def main(config):
                         if first_start == False:
                             print("新增链接: " + url_tuple[0])
                         monitoring = monitoring + 1
-                        args = [config, url_tuple, name_list, not_record_list, warning_count, logger, monitoring]
+                        args = [config, url_tuple, name_list, not_record_list, warning_count, logger, stop_event, monitoring]
                         # TODO: 执行开始录制的操作
                         create_var['thread' + str(monitoring)] = threading.Thread(target=start_record, args=args)
                         create_var['thread' + str(monitoring)].daemon = True
@@ -162,10 +157,11 @@ def main(config):
 
             firstRunOtherLine = False
 
+        # 监测到停止信号时退出程序
+        if stop_event.is_set():
+            print("监测到停止信号，退出程序")
+            break
+
         # 每次循环更新config
         config.save_config()
         time.sleep(3)
-
-
-config = Config('./config/config.json')
-main(config)

@@ -1,11 +1,17 @@
 import tkinter as tk
+import threading
 from tkinter import simpledialog, messagebox, filedialog, ttk
-from subprocess import Popen
-from main import *
+from main import main
+from config import *
 
 
 class LiveRecorderGUI:
     def __init__(self, root):
+        self.config_path = './config/config.json'  # Define this before setup_ui()
+        self.config = Config(self.config_path)
+        self.stop_event = threading.Event()
+        self.record_thread = threading.Thread(target=main, args=(self.config, self.stop_event))
+        # --------UI--------
         self.path_button = None
         self.stop_button = None
         self.start_button = None
@@ -14,21 +20,10 @@ class LiveRecorderGUI:
         self.quality_combobox = None
         self.root = root
         self.root.title("抖音直播下载")
-        self.process = None  # 用于存储子进程的引用
-        self.config = './config/config.json'  # Define this before setup_ui()
-        self.url_config = './config/url_config.json'  # Define this before setup_ui()
         self.setup_ui()
         self.update_interval = 10000  # 每隔 10 秒更新一次 Treeview
         self.update_treeview()
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
-
-    def on_close(self):
-        """在窗口关闭时调用的方法。"""
-        # 首先检查是否有录制正在进行，如果有，则停止录制
-        if self.process:
-            self.stop_recording()
-        # 然后销毁窗口
-        self.root.destroy()
 
     def setup_ui(self):
         # 创建一个Frame来包含按钮
@@ -40,7 +35,7 @@ class LiveRecorderGUI:
         center_frame.pack(expand=True)
 
         # 在center_frame内部创建按钮，并使用anchor=tk.CENTER使它们居中
-        self.add_button = tk.Button(center_frame, text="添加直播间", command=self.add_url)
+        self.add_button = tk.Button(center_frame, text="添加直播间", command=self.add_live_room)
         self.add_button.pack(side=tk.TOP, fill=tk.X)
 
         self.start_button = tk.Button(center_frame, text="开始下载", command=self.start_recording)
@@ -71,22 +66,35 @@ class LiveRecorderGUI:
         self.tree.heading('isLiving', text="直播状态")
         self.tree.pack(side=tk.RIGHT, padx=5, pady=5, fill=tk.BOTH, expand=True)
 
-    def add_url(self):
+    def on_close(self):
+        """在窗口关闭时调用的方法。"""
+        # 将config保存
+        self.config.save_config()
+        # 首先检查是否有录制正在进行，如果有，则停止录制
+        if self.record_thread.is_alive():
+            self.stop_recording()
+        # 然后销毁窗口
+        self.root.destroy()
+
+    def add_live_room(self):
         # 从对话框获取信息并添加到配置文件
         url = simpledialog.askstring("添加直播", "请输入直播链接:")
-
         if url:
-            new_entry = {
-                "url": url,
-                "description": "",
-                "startTime": "",
-                "isLiving": False
-            }
-            urls = self.load_urls()
-            urls.append(new_entry)
-            with open(self.url_config, 'w', encoding="utf-8-sig") as file:
-                json.dump(urls, file, indent=4)
-            self.load_urls()
+            live_room = LiveRoomConfig(url=url, description="", start_time="", is_recording=False, is_living="停止直播")
+            self.config.live_rooms.append(live_room)
+
+    def choose_directory(self):
+        # 弹出对话框让用户选择目录
+        directory = filedialog.askdirectory()
+        if directory:
+            # 将选择的目录路径保存到配置文件的 video_path 字段
+            self.config.video_save_path = directory
+
+    def update_video_quality(self, event):
+        # 更新配置文件中的video_quality字段
+        video_quality = self.quality_combobox.get()
+        self.config.video_quality = video_quality
+        print("update video quality")
 
     def update_treeview(self):
         """定期检查 JSON 文件并更新 Treeview."""
@@ -95,82 +103,23 @@ class LiveRecorderGUI:
         self.root.after(self.update_interval, self.update_treeview)
 
     def start_recording(self):
-        # 启动录制进程
-        self.process = Popen(['python', self.resource_path('main.py')],shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        self.record_thread.start()
+        self.record_thread.daemon = True
         messagebox.showinfo("直播", "开始直播录制。")
 
     def stop_recording(self):
         # 停止录制进程
-        if self.process:
-            self.process.terminate()
-            self.process = None
+        if self.record_thread.is_alive():
+            self.stop_event.set()
+            self.record_thread.join()
             messagebox.showinfo("直播", "已停止直播录制。")
 
     def load_urls(self):
         # 从配置文件加载直播链接到树形视图
         for i in self.tree.get_children():
             self.tree.delete(i)
-        try:
-            with open(self.url_config, 'r', encoding="utf-8-sig") as file:
-                urls = json.load(file)
-                for entry in urls:
-                    self.tree.insert('', 'end',
-                                     values=(entry['url'], entry['description'], entry['startTime'], entry['isLiving']))
-            return urls
-        except FileNotFoundError:
-            with open(self.url_config, 'w', encoding="utf-8-sig") as file:
-                json.dump([], file)  # 如果文件不存在，创建文件
-            return []
-
-    def update_video_quality(self, event):
-        # 更新配置文件中的video_quality字段
-        video_quality = self.quality_combobox.get()
-        self.update_config({'video_quality': video_quality})
-        print("finish")
-
-    def choose_directory(self):
-        # 弹出对话框让用户选择目录
-        directory = filedialog.askdirectory()
-        if directory:
-            # 将选择的目录路径保存到配置文件的 video_path 字段
-            self.update_config({'video_save_path': directory})
-
-    def update_config(self, updates):
-        # 创建并启动线程来处理 I/O
-        threading.Thread(target=self._update_config_thread, args=(updates,), daemon=True).start()
-
-    def _update_config_thread(self, updates):
-        """在单独的线程中执行耗时的 I/O 操作"""
-        try:
-            # 打开文件并加载 JSON 数据
-            with open(self.config, 'r', encoding='utf-8-sig') as file:
-                config_data = json.load(file)
-
-            # 更新 JSON 数据
-            config_data.update(updates)
-
-            # 将更新后的 JSON 数据写回文件
-            with open(self.config, 'w', encoding='utf-8-sig') as file:
-                json.dump(config_data, file, ensure_ascii=False, indent=4)
-
-        except Exception as e:
-            # 在 GUI 中显示错误消息
-            self.show_error_message(f"更新配置文件时发生错误：{e}")
-
-    def show_error_message(self, message):
-        """在 GUI 线程中显示错误消息"""
-        messagebox.showerror("错误", message)
-
-    def resource_path(self, relative_path):
-        """ 获取资源的绝对路径。用于PyInstaller的--onefile。 """
-        try:
-            # PyInstaller创建的临时文件夹
-            base_path = sys._MEIPASS
-        except Exception:
-            # 如果不是使用PyInstaller打包，则正常使用相对路径
-            base_path = os.path.abspath(".")
-
-        return os.path.join(base_path, relative_path)
+        for room in self.config.live_rooms:
+            self.tree.insert('', 'end', values=(room.url, room.description, room.start_time, room.is_living))
 
 
 if __name__ == "__main__":

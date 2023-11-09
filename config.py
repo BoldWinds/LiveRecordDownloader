@@ -42,6 +42,19 @@ class Config:
         self.dy_cookie = config['dy_cookie']
         self.live_rooms = [LiveRoomConfig(**url) for url in config['live_rooms']]
 
+    def update(self, updates):
+        if 'username' in updates:
+            self.username = updates['username']
+        if 'password' in updates:
+            self.password = updates['password']
+        if 'video_save_path' in updates:
+            self.video_save_path = updates['video_save_path']
+        if 'video_quality' in updates:
+            self.video_quality = updates['video_quality']
+        if 'dy_cookie' in updates:
+            self.dy_cookie = updates['dy_cookie']
+        return
+
     # 查找url_to_find对应的UrlConfig对象，然后更新其中的内容
     def update_live_room(self, url_to_find: str, updates: dict):
         for room in self.live_rooms:
