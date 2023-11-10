@@ -1,16 +1,20 @@
-import tkinter as tk
+import os
+import signal
+import sys
+import psutil
+import subprocess
 import threading
+import tkinter as tk
 from tkinter import simpledialog, messagebox, filedialog, ttk
-from main import main
 from config import *
 
 
 class LiveRecorderGUI:
     def __init__(self, root):
+        self.proc = None
         self.config_path = './config/config.json'  # Define this before setup_ui()
         self.config = Config(self.config_path)
-        self.stop_event = threading.Event()
-        self.record_thread = threading.Thread(target=main, args=(self.config, self.stop_event))
+
         # --------UI--------
         self.path_button = None
         self.stop_button = None
@@ -21,7 +25,7 @@ class LiveRecorderGUI:
         self.root = root
         self.root.title("抖音直播下载")
         self.setup_ui()
-        self.update_interval = 10000  # 每隔 10 秒更新一次 Treeview
+        self.update_interval = 3000  # 每隔 3 秒更新一次 Treeview
         self.update_treeview()
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
@@ -71,8 +75,7 @@ class LiveRecorderGUI:
         # 将config保存
         self.config.save_config()
         # 首先检查是否有录制正在进行，如果有，则停止录制
-        if self.record_thread.is_alive():
-            self.stop_recording()
+        self.stop_recording()
         # 然后销毁窗口
         self.root.destroy()
 
@@ -82,6 +85,7 @@ class LiveRecorderGUI:
         if url:
             live_room = LiveRoomConfig(url=url, description="", start_time="", is_recording=False, is_living="停止直播")
             self.config.live_rooms.append(live_room)
+            self.config.save_config()
 
     def choose_directory(self):
         # 弹出对话框让用户选择目录
@@ -89,32 +93,50 @@ class LiveRecorderGUI:
         if directory:
             # 将选择的目录路径保存到配置文件的 video_path 字段
             self.config.video_save_path = directory
+            self.config.save_config()
 
     def update_video_quality(self, event):
         # 更新配置文件中的video_quality字段
         video_quality = self.quality_combobox.get()
         self.config.video_quality = video_quality
+        self.config.save_config()
         print("update video quality")
 
     def update_treeview(self):
         """定期检查 JSON 文件并更新 Treeview."""
         print("update treeview")
-        print(self.config)
         self.load_urls()  # 加载最新的 URLs
         # 设置定时器，每隔一定时间重复调用该方法
         self.root.after(self.update_interval, self.update_treeview)
 
     def start_recording(self):
-        self.record_thread.daemon = True
-        self.record_thread.start()
-        messagebox.showinfo("直播", "开始直播录制。")
+        if self.proc is None:
+            try:
+                self.proc = subprocess.Popen(['python', 'main.py'], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                             stderr=subprocess.PIPE)
+
+                # 启动一个线程来异步读取输出
+                def read_output(proc):
+                    while True:
+                        output = proc.stdout.readline()
+                        if proc.poll() is not None and output == '':
+                            break
+                        if output:
+                            print(output.strip().decode('utf-8'))
+                    proc.stdout.close()
+
+                # 启动读取 stdout 的线程
+                thread = threading.Thread(target=read_output, args=(self.proc,))
+                thread.daemon = True
+                thread.start()
+            except Exception as e:
+                print("启动录制时发生错误:", e)
+            messagebox.showinfo("直播", "开始直播录制。")
+        else:
+            messagebox.showinfo("直播", "已经有一个直播录制正在进行。")
 
     def stop_recording(self):
-        # 停止录制进程
-        if self.record_thread.is_alive():
-            self.stop_event.set()
-            self.record_thread.join()
-            messagebox.showinfo("直播", "已停止直播录制。")
+        os.killpg(os.getpgid(os.getpid()), signal.SIGTERM)
 
     def load_urls(self):
         self.config.load()

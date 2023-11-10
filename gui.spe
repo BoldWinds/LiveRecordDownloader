@@ -9,8 +9,9 @@ a = Analysis(['gui.py'],
                  ('config/*.json', 'config'),  # Include config directory
                  ('api/*.php', 'api'),  # Include API directory with PHP scripts
                  ('static/*', 'static'),  # Include static directory
+                 ('main.py', '.'),  # Include main.py in the root of the executable
              ],
-             hiddenimports=['config', 'get_url', 'spider', 'web_rid', 'start_record', 'main'],  # Include all your Python modules
+             hiddenimports=['config', 'get_url', 'spider', 'web_rid', 'start_record', 'main'],
              hookspath=[],
              runtime_hooks=[],
              excludes=[],

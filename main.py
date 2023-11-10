@@ -45,7 +45,7 @@ def change_max_connect(warning_count=0):
             print("同一时间访问网络的线程数动态改为", max_request)
 
 
-def main(config, stop_event):
+def main():
     # --------------------------检测是否存在ffmpeg-------------------------------------
     ffmpeg_file_check = subprocess.getoutput(["ffmpeg"])
     if ffmpeg_file_check.find("run") > -1:
@@ -90,8 +90,6 @@ def main(config, stop_event):
 
     while True:
         # 循环读取配置
-        # config = configparser.RawConfigParser()
-
         config = Config(config_path)
 
         # 读取直播间url信息
@@ -138,7 +136,7 @@ def main(config, stop_event):
                         if first_start == False:
                             print("新增链接: " + url_tuple[0])
                         monitoring = monitoring + 1
-                        args = [config, url_tuple, name_list, not_record_list, warning_count, logger, stop_event, monitoring]
+                        args = [config, url_tuple, name_list, not_record_list, warning_count, logger, monitoring]
                         # TODO: 执行开始录制的操作
                         create_var['thread' + str(monitoring)] = threading.Thread(target=start_record, args=args)
                         create_var['thread' + str(monitoring)].daemon = True
@@ -151,17 +149,9 @@ def main(config, stop_event):
             print(f"错误信息:{e}\r\n发生错误的行数: {e.__traceback__.tb_lineno}")
             logger.warning(f"错误信息: {e} 发生错误的行数: {e.__traceback__.tb_lineno}")
 
-        if firstRunOtherLine:
-            t2 = threading.Thread(target=change_max_connect, args=[warning_count], daemon=True)
-            t2.start()
-
-            firstRunOtherLine = False
-
-        # 监测到停止信号时退出程序
-        if stop_event.is_set():
-            print("监测到停止信号，退出程序")
-            break
-
         # 每次循环更新config
         config.save_config()
         time.sleep(3)
+
+
+main()

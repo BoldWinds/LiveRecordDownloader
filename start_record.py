@@ -10,7 +10,7 @@ from config import *
 from get_url import *
 
 
-def start_record(config, url_tuple, name_list, not_record_list, warning_count, logger, stop_event, count_variable=-1):
+def start_record(config, url_tuple, name_list, not_record_list, warning_count, logger, count_variable=-1):
     live_list = []
     recording = set()
     unrecording = set()
@@ -33,8 +33,6 @@ def start_record(config, url_tuple, name_list, not_record_list, warning_count, l
             print("\r运行新线程,传入地址 " + record_url)
 
             while True:
-                if stop_event.is_set():
-                    return
                 try:
                     port_info = []
                     if record_url.find("https://live.douyin.com/") > -1:
@@ -157,8 +155,9 @@ def start_record(config, url_tuple, name_list, not_record_list, warning_count, l
                                         "{path}".format(path=file),
                                     ]
                                     ffmpeg_command.extend(command)
-                                    _output = subprocess.check_output(ffmpeg_command, stderr=subprocess.STDOUT)
-
+                                    #_output = subprocess.check_output(ffmpeg_command, stderr=subprocess.STDOUT)
+                                    proc = subprocess.Popen(ffmpeg_command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                                    proc.wait()
                                     # 取消http_proxy环境变量设置
                                     # if proxy_addr:
                                     #     del os.environ["http_proxy"]
